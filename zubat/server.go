@@ -52,7 +52,7 @@ func json_response(w http.ResponseWriter, v interface{}) {
 }
 
 func (s *server) LookupHandler(a string) http.HandlerFunc {
-	collection := s.db.Database("sonar").Collection("Test")
+	collection := s.db.Database("sonar").Collection("A")
 	dp := parser.NewDomainParser()
 	action := a
 
@@ -60,7 +60,7 @@ func (s *server) LookupHandler(a string) http.HandlerFunc {
 		ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 		vars := mux.Vars(r)
 		domain_index := strings.Split(vars["domain"], ".")[0]
-		query := bson.M{"domainindex": domain_index}
+		query := bson.M{"domain_index": domain_index}
 		cur, err := collection.Find(ctx, query)
 		if err != nil {
 			internal_error(w, err)
