@@ -17,12 +17,15 @@ import (
 	"github.com/schollz/progressbar"
 )
 
+var output_wg sync.WaitGroup
+
 type SonarResult struct {
 	Timestamp   string `bson:"timestamp"`
-	Name        string `bson:"name"`
 	Type        string `bson:"type"`
 	Value       string `bson:"value"`
-	DomainIndex string `bson:"domain_index"`
+	Domain string `bson:"domain"`
+	Tld string `bson:"tld"`
+	Subdomain string `bson:"subdomain"`
 }
 
 func ParseFile(file *os.File, ch chan<- SonarResult, bar *progressbar.ProgressBar) {
@@ -44,13 +47,18 @@ func ParseFile(file *os.File, ch chan<- SonarResult, bar *progressbar.ProgressBa
 
 			var sonar_result SonarResult
 			v, _ := p.Parse(line)
-			sonar_result.Name = string(v.GetStringBytes("name"))
+			name := string(v.GetStringBytes("name"))
 			sonar_result.Timestamp = string(v.GetStringBytes("timestamp"))
 			sonar_result.Type = string(v.GetStringBytes("type"))
 			sonar_result.Value = string(v.GetStringBytes("value"))
-			sonar_result.DomainIndex = string(v.GetStringBytes("domain_index"))
-			if sonar_result.DomainIndex == "" {
-				sonar_result.DomainIndex = domain_parser.GetDomain(sonar_result.Name)
+			sonar_result.Domain = string(v.GetStringBytes("domain"))
+
+			if sonar_result.Domain == "" {
+				domain_parts := strings.Split(name, ".")
+				offset := domain_parser.FindTldOffset(domain_parts)
+				sonar_result.Domain = domain_parts[offset]
+				sonar_result.Tld = strings.Join(domain_parts[offset + 1:], ".")
+				sonar_result.Subdomain = strings.Join(domain_parts[:offset], ".")
 			}
 
 			ch <- sonar_result
@@ -63,6 +71,7 @@ func ParseFile(file *os.File, ch chan<- SonarResult, bar *progressbar.ProgressBa
 }
 
 func Output(collection *mongo.Collection, ch <-chan SonarResult) {
+	defer output_wg.Done()
 	docs := []interface{}{}
 	for entry := range ch {
 		docs = append(docs, entry)
@@ -84,7 +93,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	filename := os.Args[1]
+	filename := os.Args[2]
 	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -106,14 +115,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	collection := client.Database("sonar").Collection("A")
+	collection_name := os.Args[1]
+	collection := client.Database("sonar").Collection(collection_name)
 
 
 
 	subdomain_channel := make(chan SonarResult, 50000)
 
+	output_wg.Add(1)
 	go Output(collection, subdomain_channel)
 	ParseFile(file, subdomain_channel, bar)
+	output_wg.Wait()
 
 }
