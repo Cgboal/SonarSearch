@@ -12,7 +12,6 @@ import (
 	"time"
 )
 
-
 type SubdomainResponse []string
 type AllResponse []map[string]string
 type TldResponse []string
@@ -60,14 +59,14 @@ func (r TldResponse) OutputJSON() {
 }
 
 type CrobatClient struct {
-	http_client    http.Client
-	url            string
+	http_client http.Client
+	url         string
 }
 
 func NewCrobatClient() CrobatClient {
 	client := http.Client{Timeout: 60 * time.Second}
 	config := load_config()
-	url := fmt.Sprintf("http://%s:%s", config["host"], config["port"])
+	url := fmt.Sprintf("https://%s:%s", config["host"], config["port"])
 	return CrobatClient{
 		http_client: client,
 		url:         url,
@@ -135,30 +134,20 @@ func (c *CrobatClient) GetAll(domain string, outputType string) {
 	results.OutputJSON()
 }
 
-
-
 func (c *CrobatClient) GetTlds(domain string, outputType string) {
 	var subdomains TldResponse
 	var results TldResponse
 	getPage := c.GetPage("/tlds/" + domain)
-	for {
-		resp := getPage()
-		defer resp.Body.Close()
-		json.NewDecoder(resp.Body).Decode(&subdomains)
-		if subdomains == nil {
-			break
-		}
-		if outputType != "json" {
-			subdomains.OutputPlain()
-		} else {
-			results = append(results, subdomains...)
-		}
-	}
+	resp := getPage()
+	defer resp.Body.Close()
+	json.NewDecoder(resp.Body).Decode(&subdomains)
 
-	if outputType != "json" {
+	if outputType == "json" {
+		results.OutputJSON()
 		return
+	} else if outputType == "plain" {
+		subdomains.OutputPlain()
 	}
-	results.OutputJSON()
 }
 
 func load_config() map[string]string {
