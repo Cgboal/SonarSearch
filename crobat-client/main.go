@@ -10,6 +10,8 @@ import (
 	"os"
 	"os/user"
 	"time"
+	"strings"
+	"github.com/sethvargo/go-diceware/diceware"
 )
 
 type SubdomainResponse []string
@@ -76,7 +78,14 @@ func NewCrobatClient() CrobatClient {
 func (c *CrobatClient) GetPage(uri string) func() *http.Response {
 	page := 0
 	return func() *http.Response {
-		resp, err := c.http_client.Get(fmt.Sprintf("%s%s?page=%d", c.url, uri, page))
+		config := load_config()
+		req, err := http.NewRequest("GET", fmt.Sprintf("%s%s?page=%d", c.url, uri, page), nil)
+		client := &http.Client{Timeout: time.Second * 10}
+
+		req.Header.Set("User-Agent", "Crobat: 1.1")
+		req.Header.Set("X-id", config["uid"])
+
+		resp, err := client.Do(req)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -150,6 +159,20 @@ func (c *CrobatClient) GetTlds(domain string, outputType string) {
 	}
 }
 
+func generate_uid() string {
+	list, _ := diceware.Generate(4)
+	var capitalized strings.Builder
+	for i := 0; i < len(list); i++ {
+		if i != len(list) - 1 {
+			capitalized.WriteString(strings.Title(list[i] + "-"))
+		} else {
+			capitalized.WriteString(strings.Title(list[i]))
+		}
+		
+	}
+ 	return capitalized.String()
+}
+
 func load_config() map[string]string {
 	usr, err := user.Current()
 	path := fmt.Sprintf("%s/.crobatrc", usr.HomeDir)
@@ -183,13 +206,15 @@ func main() {
 		path := fmt.Sprintf("%s/.crobatrc", usr.HomeDir)
 		config := make(map[string]string)
 		fmt.Println("Initializing ~/.crobatrc")
-		fmt.Println("Warnining: this will overwrite existing data in .crobatrc, use ctrl+c to abort.")
+		fmt.Println("Warnining: this will overwrite existing data in ~/.crobatrc, use ctrl+c to abort.")
 		fmt.Printf("Host: ")
 		fmt.Scan(&host)
 		fmt.Printf("Port: ")
 		fmt.Scan(&port)
+
 		config["host"] = host
 		config["port"] = port
+		config["uid"] = generate_uid()
 
 		str, _ := json.MarshalIndent(config, "", "  ")
 
