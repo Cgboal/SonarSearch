@@ -183,7 +183,7 @@ func main() {
 		path := fmt.Sprintf("%s/.crobatrc", usr.HomeDir)
 		config := make(map[string]string)
 		fmt.Println("Initializing ~/.crobatrc")
-		fmt.Println("Warnining: this will overwrite existing data in .crobatrc, use ctrl+c to abort.")
+		fmt.Println("Warning: this will overwrite existing data in .crobatrc, use ctrl+c to abort.")
 		fmt.Printf("Host: ")
 		fmt.Scan(&host)
 		fmt.Printf("Port: ")
