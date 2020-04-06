@@ -4,11 +4,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
-	"os/user"
 	"time"
 )
 
@@ -65,8 +62,7 @@ type CrobatClient struct {
 
 func NewCrobatClient() CrobatClient {
 	client := http.Client{Timeout: 60 * time.Second}
-	config := load_config()
-	url := fmt.Sprintf("https://%s:%s", config["host"], config["port"])
+	url := "https://sonar.omnisint.io/"
 	return CrobatClient{
 		http_client: client,
 		url:         url,
@@ -150,57 +146,13 @@ func (c *CrobatClient) GetTlds(domain string, outputType string) {
 	}
 }
 
-func load_config() map[string]string {
-	usr, err := user.Current()
-	path := fmt.Sprintf("%s/.crobatrc", usr.HomeDir)
-	jsonFile, err := os.Open(path)
-
-	if err != nil {
-		fmt.Println("Unable to load connection details from ~/.crobatrc, did you use --init?")
-		fmt.Println("Error:", err)
-		os.Exit(1)
-	}
-
-	defer jsonFile.Close()
-	var result map[string]string
-	json.NewDecoder(jsonFile).Decode(&result)
-	return result
-}
-
 func main() {
-	initialize := flag.Bool("init", false, "Initialize config and auth file")
 	domain_sub := flag.String("s", "", "Get subdomains for this value")
 	domain_tld := flag.String("t", "", "Get tlds for this value")
 	domain_all := flag.String("all", "", "Get all data for this query")
 	format := flag.String("f", "plain", "Set output format (json/plain)")
 
 	flag.Parse()
-
-	if *initialize {
-		var host string
-		var port string
-		usr, _ := user.Current()
-		path := fmt.Sprintf("%s/.crobatrc", usr.HomeDir)
-		config := make(map[string]string)
-		fmt.Println("Initializing ~/.crobatrc")
-		fmt.Println("Warning: this will overwrite existing data in .crobatrc, use ctrl+c to abort.")
-		fmt.Printf("Host: ")
-		fmt.Scan(&host)
-		fmt.Printf("Port: ")
-		fmt.Scan(&port)
-		config["host"] = host
-		config["port"] = port
-
-		str, _ := json.MarshalIndent(config, "", "  ")
-
-		err := ioutil.WriteFile(path, str, 0644)
-		if err == nil {
-			fmt.Println("Saved to ~/.crobatrc successfully")
-		} else {
-			fmt.Println("Saving ~/.crobatrc failed")
-			fmt.Println("Error:", err)
-		}
-	}
 
 	client := NewCrobatClient()
 	if *domain_sub != "" {
