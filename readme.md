@@ -25,17 +25,6 @@ Crobat-Client is a command line utility designed to allow easy querying of the C
 $ go get github.com/cgboal/sonarsearch/crobat-client
 ```
 
-Before first use, the client needs to be configured. This is required in case you want to run your own instance of Crobat. 
-
-``` normal
-$ crobat-client --init
-Initializing ~/.crobatrc
-Warnining: this will overwrite existing data in .crobatrc, use ctrl+c to abort.
-Host: sonar.omnisint.io
-Port: 443
-Saved to ~/.crobatrc successfully
-```
-
 By default, Crobat-Client will return a list of result in plain-text, however, JSON output is also supported. 
 
 Below is a full list of command line flags:
