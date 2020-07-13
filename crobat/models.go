@@ -14,7 +14,11 @@ type SonarDomain struct {
 }
 
 func (d *SonarDomain) GetFullDomain() string {
-	return strings.Join([]string{d.Subdomain, d.Domain, d.Tld}, ".")
+	if d.Subdomain != "" {
+		return strings.Join([]string{d.Subdomain, d.Domain, d.Tld}, ".")
+	} else {
+		return strings.Join([]string{d.Domain, d.Tld}, ".")
+	}
 }
 
 func (d *SonarDomain) GetFQDN() string {
