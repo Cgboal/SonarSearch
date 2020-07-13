@@ -14,52 +14,6 @@ import (
 	"strings"
 )
 
-type SubdomainResponse []string
-type AllResponse []map[string]string
-type TldResponse []string
-
-func (r SubdomainResponse) OutputPlain() {
-	for _, domain := range r {
-		fmt.Println(domain)
-	}
-}
-
-func (r SubdomainResponse) OutputJSON() {
-	json_out, err := json.MarshalIndent(r, "", "    ")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(string(json_out))
-}
-
-func (r AllResponse) OutputPlain() {
-	for _, domain := range r {
-		fmt.Println(domain["name"])
-	}
-}
-
-func (r AllResponse) OutputJSON() {
-	json_out, err := json.MarshalIndent(r, "", "    ")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(string(json_out))
-}
-
-func (r TldResponse) OutputPlain() {
-	for _, domain := range r {
-		fmt.Println(domain)
-	}
-}
-
-func (r TldResponse) OutputJSON() {
-	json_out, err := json.MarshalIndent(r, "", "    ")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(string(json_out))
-}
-
 type CrobatClient struct {
 	conn   *grpc.ClientConn
 	client crobat.CrobatClient
@@ -79,7 +33,7 @@ func NewCrobatClient() CrobatClient {
 	}
 }
 
-func (c *CrobatClient) GetSubdomains(domain string, outputType string) {
+func (c *CrobatClient) GetSubdomains(domain string) {
 	query := &crobat.QueryRequest{
 		Query: domain,
 	}
@@ -103,7 +57,7 @@ func (c *CrobatClient) GetSubdomains(domain string, outputType string) {
 
 }
 
-func (c *CrobatClient) GetTlds(domain string, outputType string) {
+func (c *CrobatClient) GetTlds(domain string) {
 	query := &crobat.QueryRequest{
 		Query: domain,
 	}
@@ -169,15 +123,14 @@ func main() {
 	domain_sub := flag.String("s", "", "Get subdomains for this value")
 	domain_tld := flag.String("t", "", "Get tlds for this value")
 	reverse_dns := flag.String("r", "", "Perform reverse lookup on IP address or CIDR range")
-	format := flag.String("f", "plain", "Set output format (json/plain)")
 
 	flag.Parse()
 
 	client := NewCrobatClient()
 	if *domain_sub != "" {
-		client.GetSubdomains(*domain_sub, *format)
+		client.GetSubdomains(*domain_sub)
 	} else if *domain_tld != "" {
-		client.GetTlds(*domain_tld, *format)
+		client.GetTlds(*domain_tld)
 	} else if *reverse_dns != "" {
 		if !strings.Contains(*reverse_dns, "/") {
 			client.ReverseDNS(*reverse_dns)
