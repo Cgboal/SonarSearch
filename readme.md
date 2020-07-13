@@ -45,7 +45,7 @@ Usage of crobat-client:
 
 ### Third-Party SDKs
 
-There are no third-party SDKs at this time
+* [Crystal SDK and CLI tool complete with Docker images](https://github.com/PercussiveElbow/crobat-sdk-crystal) made by [@mil0sec](https://twitter.com/mil0sec)
 
 ### Contributing 
 If you wish to contribute a SDK written in other languages, shoot me a DM on Twitter (@CalumBoal), or open an issue on this repository and I will provide a link to your repository in the Third-Party SDK's section of this readme. 
