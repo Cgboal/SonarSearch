@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package proto;
+
+
+service Crobat {
+  rpc GetSubdomains (QueryRequest) returns (stream Domain) {}
+  rpc GetTLDs (QueryRequest) returns (stream Domain) {}
+  rpc ReverseDNS (QueryRequest) returns (stream Domain) {}
+  rpc ReverseDNSRange (QueryRequest) returns (ReverseReply) {}
+}
+
+message QueryRequest {
+  string query = 1;
+}
+
+message Domain {
+  string domain = 1;
+  string ipv4 = 2;
+}
+
+message ReverseReply {
+  repeated ReverseResult results = 1;
+}
+
+message ReverseResult {
+  string ip = 1;
+  repeated Domain domains = 2;
+}
