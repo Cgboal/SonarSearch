@@ -9,7 +9,6 @@ import (
 	"github.com/valyala/fastjson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"golang.org/x/sync/semaphore"
 	"log"
 	"os"
 	"runtime"
@@ -31,7 +30,6 @@ type SonarResult struct {
 
 func ParseFile(file *os.File, ch chan<- SonarResult, bar *progressbar.ProgressBar) {
 	var wg sync.WaitGroup
-	lock := semaphore.NewWeighted(int64(runtime.NumCPU()) / 2)
 	scanner := bufio.NewScanner(file)
 	domain_parser := parser.NewDomainParser()
 
@@ -65,7 +63,6 @@ func ParseFile(file *os.File, ch chan<- SonarResult, bar *progressbar.ProgressBa
 
 	for scanner.Scan() {
 		bar.Write([]byte(scanner.Text()))
-		lock.Acquire(context.TODO(), 1)
 		line := strings.TrimSpace(scanner.Text())
 		linesChannel <- line
 
