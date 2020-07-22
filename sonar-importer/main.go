@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"github.com/Cgboal/DomainParser"
+	"github.com/schollz/progressbar"
 	"github.com/valyala/fastjson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -14,17 +15,17 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"github.com/schollz/progressbar"
+	"fmt"
 )
 
 var output_wg sync.WaitGroup
 
 type SonarResult struct {
-	Timestamp   string `bson:"timestamp"`
-	Type        string `bson:"type"`
-	Value       string `bson:"value"`
-	Domain string `bson:"domain"`
-	Tld string `bson:"tld"`
+	Timestamp string `bson:"timestamp"`
+	Type      string `bson:"type"`
+	Value     string `bson:"value"`
+	Domain    string `bson:"domain"`
+	Tld       string `bson:"tld"`
 	Subdomain string `bson:"subdomain"`
 }
 
@@ -57,7 +58,7 @@ func ParseFile(file *os.File, ch chan<- SonarResult, bar *progressbar.ProgressBa
 				domain_parts := strings.Split(name, ".")
 				offset := domain_parser.FindTldOffset(domain_parts)
 				sonar_result.Domain = domain_parts[offset]
-				sonar_result.Tld = strings.Join(domain_parts[offset + 1:], ".")
+				sonar_result.Tld = strings.Join(domain_parts[offset+1:], ".")
 				sonar_result.Subdomain = strings.Join(domain_parts[:offset], ".")
 			}
 
@@ -104,10 +105,19 @@ func main() {
 		log.Fatal(err)
 	}
 
-	bar := progressbar.NewOptions(
-		int(fi.Size()),
+	bar := progressbar.NewOptions64(
+		fi.Size(),
 		progressbar.OptionThrottle(20*time.Second),
-		progressbar.OptionSetBytes(int(fi.Size())),
+		progressbar.OptionSetWriter(os.Stderr),
+		progressbar.OptionShowBytes(true),
+		progressbar.OptionSetWidth(10),
+		progressbar.OptionThrottle(65*time.Millisecond),
+		progressbar.OptionShowCount(),
+		progressbar.OptionOnCompletion(func() {
+			fmt.Fprint(os.Stderr, "\n")
+		}),
+		progressbar.OptionSpinnerType(14),
+		progressbar.OptionFullWidth(),
 	)
 
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
@@ -117,8 +127,6 @@ func main() {
 	}
 	collection_name := os.Args[1]
 	collection := client.Database("sonar").Collection(collection_name)
-
-
 
 	subdomain_channel := make(chan SonarResult, 50000)
 

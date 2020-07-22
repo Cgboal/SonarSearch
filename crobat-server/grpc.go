@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/Cgboal/DomainParser"
+	parser "github.com/Cgboal/DomainParser"
 	crobat "github.com/Cgboal/SonarSearch/proto"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
