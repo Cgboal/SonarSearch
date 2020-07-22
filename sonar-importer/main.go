@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"github.com/Cgboal/DomainParser"
 	"github.com/schollz/progressbar"
 	"github.com/valyala/fastjson"
@@ -15,7 +16,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"fmt"
 )
 
 var output_wg sync.WaitGroup
@@ -34,36 +34,40 @@ func ParseFile(file *os.File, ch chan<- SonarResult, bar *progressbar.ProgressBa
 	lock := semaphore.NewWeighted(int64(runtime.NumCPU()) / 2)
 	scanner := bufio.NewScanner(file)
 	domain_parser := parser.NewDomainParser()
-	for scanner.Scan() {
-		bar.Write([]byte(scanner.Text()))
+
+	linesChannel := make(chan string, 10000)
+	for i := 0; i < runtime.NumCPU(); i++ {
 		wg.Add(1)
-		lock.Acquire(context.TODO(), 1)
-
-		var p fastjson.Parser
-
-		line := strings.TrimSpace(scanner.Text())
 		go func(ch chan<- SonarResult) {
 			defer wg.Done()
-			defer lock.Release(1)
+			var p fastjson.Parser
+			for line := range linesChannel {
+				var sonar_result SonarResult
+				v, _ := p.Parse(line)
+				name := string(v.GetStringBytes("name"))
+				sonar_result.Timestamp = string(v.GetStringBytes("timestamp"))
+				sonar_result.Type = string(v.GetStringBytes("type"))
+				sonar_result.Value = string(v.GetStringBytes("value"))
+				sonar_result.Domain = string(v.GetStringBytes("domain"))
 
-			var sonar_result SonarResult
-			v, _ := p.Parse(line)
-			name := string(v.GetStringBytes("name"))
-			sonar_result.Timestamp = string(v.GetStringBytes("timestamp"))
-			sonar_result.Type = string(v.GetStringBytes("type"))
-			sonar_result.Value = string(v.GetStringBytes("value"))
-			sonar_result.Domain = string(v.GetStringBytes("domain"))
+				if sonar_result.Domain == "" {
+					domain_parts := strings.Split(name, ".")
+					offset := domain_parser.FindTldOffset(domain_parts)
+					sonar_result.Domain = domain_parts[offset]
+					sonar_result.Tld = strings.Join(domain_parts[offset+1:], ".")
+					sonar_result.Subdomain = strings.Join(domain_parts[:offset], ".")
+				}
 
-			if sonar_result.Domain == "" {
-				domain_parts := strings.Split(name, ".")
-				offset := domain_parser.FindTldOffset(domain_parts)
-				sonar_result.Domain = domain_parts[offset]
-				sonar_result.Tld = strings.Join(domain_parts[offset+1:], ".")
-				sonar_result.Subdomain = strings.Join(domain_parts[:offset], ".")
+				ch <- sonar_result
 			}
-
-			ch <- sonar_result
 		}(ch)
+	}
+
+	for scanner.Scan() {
+		bar.Write([]byte(scanner.Text()))
+		lock.Acquire(context.TODO(), 1)
+		line := strings.TrimSpace(scanner.Text())
+		linesChannel <- line
 
 	}
 	wg.Wait()
@@ -111,7 +115,6 @@ func main() {
 		progressbar.OptionSetWriter(os.Stderr),
 		progressbar.OptionShowBytes(true),
 		progressbar.OptionSetWidth(10),
-		progressbar.OptionThrottle(65*time.Millisecond),
 		progressbar.OptionShowCount(),
 		progressbar.OptionOnCompletion(func() {
 			fmt.Fprint(os.Stderr, "\n")
