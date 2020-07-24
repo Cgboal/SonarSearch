@@ -17,15 +17,15 @@ Currently, the Crobat API implements three endpoints.
 
 No authentication is required to use the API, nor special headers, so go nuts. 
 
-However, the API does have pagination. Currently pages are limited to 10k results per page. To request pages, add `?page=X` to the request, where `X` is the page number. Crobat-Client automatically handles pagination, so no need to worry about this if you are using the client.
+However, the API does have pagination. Currently pages are limited to 10k results per page. To request pages, add `?page=X` to the request, where `X` is the page number. Crobat automatically handles pagination, so no need to worry about this if you are using the client.
 
-### Crobat-Client
-Crobat-Client is a command line utility designed to allow easy querying of the Crobat API. To install the client, run the following command: 
+### Crobat
+Crobat is a command line utility designed to allow easy querying of the Crobat API. To install the client, run the following command: 
 ``` normal
 $ go get github.com/cgboal/sonarsearch/crobat
 ```
 
-By default, Crobat-Client will return a list of result in plain-text, however, JSON output is also supported. 
+By default, Crobat will return a list of result in plain-text, however, JSON output is also supported. 
 
 Below is a full list of command line flags:
 ``` normal
