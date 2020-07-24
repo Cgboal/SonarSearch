@@ -129,7 +129,16 @@ func (s *server) ReverseRangeHandler() http.HandlerFunc {
 		ctx, _ := context.WithTimeout(context.Background(), 120*time.Second)
 		vars := mux.Vars(r)
 
-		
+		maskSize, err := strconv.Atoi(vars["mask"])
+		if err != nil {
+			internal_error(w, err)
+			return
+		}
+		fmt.Println(maskSize)
+		if maskSize < 16 {
+			internal_error(w, errors.New("If you want to request networks larger than a /16, pease use the command line client which streams the results thus reducing server load."))
+			return
+		}
 
 		cidr := fmt.Sprintf("%s/%s", vars["ip"], vars["mask"])
 		ip, ipnet, err := net.ParseCIDR(cidr)
@@ -153,59 +162,6 @@ func (s *server) ReverseRangeHandler() http.HandlerFunc {
 			var domain SonarDomain
 			cur.Decode(&domain)
 			results[domain.Value] = append(results[domain.Value], domain.GetFullDomain())
-		}
-		json_response(w, results)
-	}
-}
-func (s *server) ReverseRangeHandlerBak() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		collection := s.db.Database("sonar").Collection("A")
-		ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-		vars := mux.Vars(r)
-
-		maskSize, err := strconv.Atoi(vars["mask"])
-		if err != nil {
-			internal_error(w, err)
-			return
-		}
-		if maskSize < 16 {
-			internal_error(w, errors.New("If you want to request networks larger than a /16, pease use the command line client which streams the results thus reducing server load."))
-			return
-		}
-
-		cidr := fmt.Sprintf("%s/%s", vars["ip"], vars["mask"])
-		ip, ipnet, err := net.ParseCIDR(cidr)
-		if err != nil {
-			internal_error(w, err)
-			return
-		}
-		var results []map[string]interface{}
-		for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
-			result := make(map[string]interface{})
-			reverse_results, err := func(ip net.IP) ([]string, error) {
-				query := bson.M{"value": ip.String()}
-				cur, err := collection.Find(ctx, query)
-				if err != nil {
-					return nil, err
-				}
-				defer cur.Close(ctx)
-				var results []string
-				for cur.Next(ctx) {
-					var domain SonarDomain
-					cur.Decode(&domain)
-					results = append(results, domain.GetFullDomain())
-				}
-				return results, nil
-			}(ip)
-			if err != nil {
-				internal_error(w, err)
-				return
-			}
-			if reverse_results != nil {
-				result["ip"] = ip.String() 
-				result["domains"] = reverse_results
-				results = append(results, result)
-			}
 		}
 		json_response(w, results)
 	}
