@@ -121,7 +121,7 @@ func (c *CrobatClient) ReverseDNSRange(ipv4 string) {
 			break
 		}
 		jsonResults, _ := json.MarshalIndent(*result, "", "    ")
-		fmt.Printf("%s", jsonResults)
+		fmt.Printf("%s\n", jsonResults)
 	}
 
 }

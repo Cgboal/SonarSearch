@@ -118,23 +118,20 @@ func (s *crobatServer) ReverseDNSRange(query *crobat.QueryRequest, stream crobat
 		return err
 	}
 	for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
-		reverse_results, err := func(ip net.IP) ([]*crobat.Domain, error) {
+		reverse_results, err := func(ip net.IP) ([]string, error) {
 			mongoQuery := bson.M{"value": ip.String()}
 			cur, err := collection.Find(ctx, mongoQuery)
 			if err != nil {
 				return nil, err
 			}
 			defer cur.Close(ctx)
-			var results []*crobat.Domain
+			var results []string
 			for cur.Next(ctx) {
 				var domain SonarDomain
 				cur.Decode(&domain)
-				result := &crobat.Domain{
-					Domain: domain.GetFullDomain(),
-					Ipv4:   domain.Value,
-				}
-				results = append(results, result)
+				results = append(results, domain.GetFullDomain())
 			}
+
 			return results, nil
 		}(ip)
 		if err != nil {
