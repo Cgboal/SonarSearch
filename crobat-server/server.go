@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"time"
 	"net"
+	"errors"
 )
 
 type domainHandler = func(w http.ResponseWriter, r *http.Request, cur *mongo.Cursor, ctx context.Context)
@@ -128,6 +129,8 @@ func (s *server) ReverseRangeHandler() http.HandlerFunc {
 		ctx, _ := context.WithTimeout(context.Background(), 120*time.Second)
 		vars := mux.Vars(r)
 
+		
+
 		cidr := fmt.Sprintf("%s/%s", vars["ip"], vars["mask"])
 		ip, ipnet, err := net.ParseCIDR(cidr)
 		if err != nil {
@@ -159,6 +162,12 @@ func (s *server) ReverseRangeHandlerBak() http.HandlerFunc {
 		collection := s.db.Database("sonar").Collection("A")
 		ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 		vars := mux.Vars(r)
+
+		maskSize, _ := strconv.Atoi(vars["mask"])
+		if maskSize < 16 {
+			internal_error(w, errors.New("If you want to request networks larger than a /16, pease use the command line client which streams the results thus reducing server load."))
+			return
+		}
 
 		cidr := fmt.Sprintf("%s/%s", vars["ip"], vars["mask"])
 		ip, ipnet, err := net.ParseCIDR(cidr)
