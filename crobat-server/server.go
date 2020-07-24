@@ -163,7 +163,11 @@ func (s *server) ReverseRangeHandlerBak() http.HandlerFunc {
 		ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 		vars := mux.Vars(r)
 
-		maskSize, _ := strconv.Atoi(vars["mask"])
+		maskSize, err := strconv.Atoi(vars["mask"])
+		if err != nil {
+			internal_error(w, err)
+			return
+		}
 		if maskSize < 16 {
 			internal_error(w, errors.New("If you want to request networks larger than a /16, pease use the command line client which streams the results thus reducing server load."))
 			return
