@@ -7,7 +7,7 @@ service Crobat {
   rpc GetSubdomains (QueryRequest) returns (stream Domain) {}
   rpc GetTLDs (QueryRequest) returns (stream Domain) {}
   rpc ReverseDNS (QueryRequest) returns (stream Domain) {}
-  rpc ReverseDNSRange (QueryRequest) returns (ReverseReply) {}
+  rpc ReverseDNSRange (QueryRequest) returns (stream ReverseResult) {}
 }
 
 message QueryRequest {
@@ -17,10 +17,6 @@ message QueryRequest {
 message Domain {
   string domain = 1;
   string ipv4 = 2;
-}
-
-message ReverseReply {
-  repeated ReverseResult results = 1;
 }
 
 message ReverseResult {

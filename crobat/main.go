@@ -110,13 +110,20 @@ func (c *CrobatClient) ReverseDNSRange(ipv4 string) {
 		Query: ipv4,
 	}
 
-	results, err := c.client.ReverseDNSRange(context.Background(), query)
+	stream, err := c.client.ReverseDNSRange(context.Background(), query)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	jsonResults, _ := json.MarshalIndent(*results, "", "    ")
-	fmt.Printf("%s", jsonResults)
+	for {
+		result, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		jsonResults, _ := json.MarshalIndent(*result, "", "    ")
+		fmt.Printf("%s", jsonResults)
+	}
+
 }
 
 func main() {

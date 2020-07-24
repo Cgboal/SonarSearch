@@ -109,19 +109,18 @@ func (s *crobatServer) ReverseDNS(query *crobat.QueryRequest, stream crobat.Crob
 	return nil
 }
 
-func (s *crobatServer) ReverseDNSRange(ctx context.Context, query *crobat.QueryRequest) (*crobat.ReverseReply, error) {
+func (s *crobatServer) ReverseDNSRange(query *crobat.QueryRequest, stream crobat.Crobat_ReverseDNSRangeServer) (error) {
 	collection := s.db.Database("sonar").Collection("A")
-	mongoCtx, _ := context.WithTimeout(context.Background(), 120*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 120*time.Second)
 	cidr := query.Query
 	ip, ipnet, err := net.ParseCIDR(cidr)
 	if err != nil {
-		return &crobat.ReverseReply{}, err
+		return err
 	}
-	reply := &crobat.ReverseReply{}
 	for ip := ip.Mask(ipnet.Mask); ipnet.Contains(ip); inc(ip) {
 		reverse_results, err := func(ip net.IP) ([]*crobat.Domain, error) {
 			mongoQuery := bson.M{"value": ip.String()}
-			cur, err := collection.Find(mongoCtx, mongoQuery)
+			cur, err := collection.Find(ctx, mongoQuery)
 			if err != nil {
 				return nil, err
 			}
@@ -139,15 +138,18 @@ func (s *crobatServer) ReverseDNSRange(ctx context.Context, query *crobat.QueryR
 			return results, nil
 		}(ip)
 		if err != nil {
-			return &crobat.ReverseReply{}, err
+			return err
 		}
 		if reverse_results != nil {
 			result := &crobat.ReverseResult{
 				Ip:      ip.String(),
 				Domains: reverse_results,
 			}
-			reply.Results = append(reply.Results, result)
+			if err := stream.Send(result); err != nil {
+				return err
+			}
 		}
+
 	}
-	return reply, nil
+	return nil
 }
