@@ -22,15 +22,15 @@ However, the API does have pagination. Currently pages are limited to 10k result
 ### Crobat-Client
 Crobat-Client is a command line utility designed to allow easy querying of the Crobat API. To install the client, run the following command: 
 ``` normal
-$ go get github.com/cgboal/sonarsearch/crobat-client
+$ go get github.com/cgboal/sonarsearch/crobat
 ```
 
 By default, Crobat-Client will return a list of result in plain-text, however, JSON output is also supported. 
 
 Below is a full list of command line flags:
 ``` normal
-$ crobat-client -h
-Usage of crobat-client:
+$ crobat -h
+Usage of crobat:
   -all string
     	Get all data for this query
   -f string
