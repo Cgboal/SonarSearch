@@ -31,16 +31,12 @@ Below is a full list of command line flags:
 ``` normal
 $ crobat -h
 Usage of crobat:
-  -all string
-    	Get all data for this query
-  -f string
-    	Set output format (json/plain) (default "plain")
-  -init
-    	Initialize config and auth file
+  -r string
+        Perform reverse lookup on IP address or CIDR range
   -s string
-    	Get subdomains for this value
+        Get subdomains for this value
   -t string
-    	Get tlds for this value
+        Get tlds for this value
 ```     
 
 ### Third-Party SDKs
