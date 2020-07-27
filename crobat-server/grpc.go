@@ -40,17 +40,17 @@ func NewRPCServer() crobatServer {
 
 func (s *crobatServer) GetSubdomains(query *crobat.QueryRequest, stream crobat.Crobat_GetSubdomainsServer) error {
 	collection := s.db.Database("sonar").Collection("A")
-	queryCtx, _ := context.WithTimeout(context.Background(), 120*time.Second)
+	ctx := context.Background()
 	domain := s.dp.GetDomain(query.Query)
 	tld := s.dp.GetTld(query.Query)
 	mongoQuery := bson.M{"domain": domain, "tld": tld}
 	opts := options.Find().SetProjection(bson.D{{"subdomain", 1}, {"domain", 1}, {"tld", 1}})
-	cur, err := collection.Find(queryCtx, mongoQuery, opts)
+	cur, err := collection.Find(ctx, mongoQuery, opts)
 	if err != nil {
 		return err
 	}
-	defer cur.Close(queryCtx)
-	for cur.Next(queryCtx) {
+	defer cur.Close(ctx)
+	for cur.Next(ctx) {
 		var domain SonarDomain
 		cur.Decode(&domain)
 		reply := &crobat.Domain{
@@ -67,7 +67,7 @@ func (s *crobatServer) GetSubdomains(query *crobat.QueryRequest, stream crobat.C
 
 func (s *crobatServer) GetTLDs(query *crobat.QueryRequest, stream crobat.Crobat_GetTLDsServer) error {
 	collection := s.db.Database("sonar").Collection("A")
-	ctx, _ := context.WithTimeout(context.Background(), 120*time.Second)
+	ctx := context.Background()
 	domain := query.Query
 	mongoQuery := bson.M{"domain": domain}
 	values, err := collection.Distinct(ctx, "tld", mongoQuery)
@@ -89,7 +89,7 @@ func (s *crobatServer) GetTLDs(query *crobat.QueryRequest, stream crobat.Crobat_
 
 func (s *crobatServer) ReverseDNS(query *crobat.QueryRequest, stream crobat.Crobat_ReverseDNSServer) error {
 	collection := s.db.Database("sonar").Collection("A")
-	ctx, _ := context.WithTimeout(context.Background(), 120*time.Second)
+	ctx := context.Background()
 	mongoQuery := bson.M{"value": query.Query}
 	cur, err := collection.Find(ctx, mongoQuery)
 	if err != nil {
@@ -111,7 +111,7 @@ func (s *crobatServer) ReverseDNS(query *crobat.QueryRequest, stream crobat.Crob
 
 func (s *crobatServer) ReverseDNSRange(query *crobat.QueryRequest, stream crobat.Crobat_ReverseDNSRangeServer) (error) {
 	collection := s.db.Database("sonar").Collection("A")
-	ctx, _ := context.WithTimeout(context.Background(), 120*time.Second)
+	ctx := context.Background()
 	cidr := query.Query
 	ip, ipnet, err := net.ParseCIDR(cidr)
 	if err != nil {
