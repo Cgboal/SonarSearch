@@ -15,7 +15,7 @@ Currently, Project Crobat offers two APIs. The first of these is a REST API, wit
 ``` normal
 /subdomains/{domain} - All subdomains for a given domain
 /tlds/{domain} - All tlds found for a given domain
-/all/{domain} - All results accross all tlds for a given domain
+/all/{domain} - All results across all tlds for a given domain
 /reverse/{ip} - Reverse DNS lookup on IP address
 /reverse/{ip}/{mask} - Reverse DNS lookup of a CIDR range
 ```
