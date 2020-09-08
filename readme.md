@@ -1,6 +1,6 @@
 ## SonarSearch
 <p align="center">
-  <img width="30%" height="30%" src="http://sonar.omnisint.io/img/crobat.png">
+  <img width="30%" height="30%" src="https://sonar.omnisint.io/img/crobat.png">
 </p>
 This repository contains all the code needed to create index Rapid7's Project Sonar Forward DNS lookup datasets into a MongoDB database, and query them in a time efficient fashion. 
 
