@@ -60,6 +60,7 @@ func unauthorized(w http.ResponseWriter) {
 }
 
 func json_response(w http.ResponseWriter, v interface{}) {
+	w.Header().Set("Content-Type", "application/json")
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "    ")
 	encoder.Encode(v)
