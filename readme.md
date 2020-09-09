@@ -1,6 +1,6 @@
 ## SonarSearch
 <p align="center">
-  <img width="30%" height="30%" src="http://sonar.omnisint.io/img/crobat.png">
+  <img width="30%" height="30%" src="https://sonar.omnisint.io/img/crobat.png">
 </p>
 This repository contains all the code needed to create index Rapid7's Project Sonar Forward DNS lookup datasets into a MongoDB database, and query them in a time efficient fashion. 
 
@@ -15,7 +15,7 @@ Currently, Project Crobat offers two APIs. The first of these is a REST API, wit
 ``` normal
 /subdomains/{domain} - All subdomains for a given domain
 /tlds/{domain} - All tlds found for a given domain
-/all/{domain} - All results accross all tlds for a given domain
+/all/{domain} - All results across all tlds for a given domain
 /reverse/{ip} - Reverse DNS lookup on IP address
 /reverse/{ip}/{mask} - Reverse DNS lookup of a CIDR range
 ```
