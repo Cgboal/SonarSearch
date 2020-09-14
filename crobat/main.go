@@ -166,9 +166,9 @@ func (c *CrobatClient) ReverseDNSRange(arg string) {
 }
 
 func main() {
-	domain_sub := flag.String("s", "", "Get subdomains for this value")
-	domain_tld := flag.String("t", "", "Get tlds for this value")
-	reverse_dns := flag.String("r", "", "Perform reverse lookup on IP address or CIDR range")
+	domain_sub := flag.String("s", "", "Get subdomains for this value. Supports files and quoted lists")
+	domain_tld := flag.String("t", "", "Get tlds for this value. Supports files and quoted lists")
+	reverse_dns := flag.String("r", "", "Perform reverse lookup on IP address or CIDR range. Supports files and quoted lists")
 
 	flag.Parse()
 

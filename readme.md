@@ -44,7 +44,9 @@ Usage of crobat:
         Get subdomains for this value
   -t string
         Get tlds for this value
-```     
+```
+
+Additionally, it is now possible to pass either file names, or quoted lists ('example.com example.co.uk') as the value for each flag in order to specify multiple domains/ranges.
 
 
 ### Third-Party SDKs
