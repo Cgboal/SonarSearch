@@ -32,6 +32,11 @@ Crobat is a command line utility designed to allow easy querying of the Crobat A
 $ go get github.com/cgboal/sonarsearch/crobat
 ```
 
+A Docker container is also available: 
+```normal
+$ docker run cgboal/crobat:latest -h 
+```
+
 By default, Crobat will return a list of result in plain-text, however, JSON output is also supported. 
 
 Below is a full list of command line flags:
