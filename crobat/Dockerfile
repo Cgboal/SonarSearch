@@ -7,6 +7,6 @@ RUN git clone https://github.com/Cgboal/SonarSearch /go/src/github.com/Cgboal/So
 RUN cd /go/src/github.com/Cgboal/SonarSearch/crobat && export CGO_ENABLED=0 && go build -ldflags '-extldflags "-static"' && go install
 
 FROM scratch
-copy --from=builder /go/bin/crobat /bin/crobat
+COPY --from=builder /go/bin/crobat /bin/crobat
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 ENTRYPOINT ["/bin/crobat"]
