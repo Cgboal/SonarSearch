@@ -22,6 +22,16 @@ type CrobatClient struct {
 	client crobat.CrobatClient
 }
 
+type UniqueStringSlice map[string]struct{}
+
+func (slice *UniqueStringSlice) Append(value string) bool {
+	if _, ok := (*slice)[value]; !ok {
+		(*slice)[value] = struct{}{}
+		return true
+	}
+	return false
+}
+
 func ProcessArg(arg string) (args []string) {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
@@ -58,8 +68,9 @@ func NewCrobatClient() CrobatClient {
 	}
 }
 
-func (c *CrobatClient) GetSubdomains(arg string) {
+func (c *CrobatClient) GetSubdomains(arg string, resultsChan chan string) {
 	args := ProcessArg(arg)
+	defer close(resultsChan)
 	for _, domain := range args {
 		query := &crobat.QueryRequest{
 			Query: domain,
@@ -79,14 +90,15 @@ func (c *CrobatClient) GetSubdomains(arg string) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Println(domain.Domain)
+			resultsChan <- domain.Domain
 		}
 	}
 
 }
 
-func (c *CrobatClient) GetTlds(arg string) {
+func (c *CrobatClient) GetTlds(arg string, resultsChan chan string) {
 	args := ProcessArg(arg)
+	defer close(resultsChan)
 	for _, domain := range args {
 
 		query := &crobat.QueryRequest{
@@ -107,14 +119,15 @@ func (c *CrobatClient) GetTlds(arg string) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Println(domain.Domain)
+			resultsChan <- domain.Domain
 		}
 	}
 
 }
 
-func (c *CrobatClient) ReverseDNS(arg string) {
+func (c *CrobatClient) ReverseDNS(arg string, resultsChan chan string) {
 	args := ProcessArg(arg)
+	defer close(resultsChan)
 	for _, ipv4 := range args {
 
 		query := &crobat.QueryRequest{
@@ -135,14 +148,15 @@ func (c *CrobatClient) ReverseDNS(arg string) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Println(domain.Domain)
+			resultsChan <- domain.Domain
 		}
 
 	}
 }
 
-func (c *CrobatClient) ReverseDNSRange(arg string) {
+func (c *CrobatClient) ReverseDNSRange(arg string, resultsChan chan string) {
 	args := ProcessArg(arg)
+	defer close(resultsChan)
 	for _, ipv4 := range args {
 		query := &crobat.QueryRequest{
 			Query: ipv4,
@@ -159,7 +173,7 @@ func (c *CrobatClient) ReverseDNSRange(arg string) {
 				break
 			}
 			jsonResults, _ := json.MarshalIndent(*result, "", "    ")
-			fmt.Printf("%s\n", jsonResults)
+			resultsChan <- fmt.Sprintf("%s\n", jsonResults)
 		}
 
 	}
@@ -169,19 +183,35 @@ func main() {
 	domain_sub := flag.String("s", "", "Get subdomains for this value. Supports files and quoted lists")
 	domain_tld := flag.String("t", "", "Get tlds for this value. Supports files and quoted lists")
 	reverse_dns := flag.String("r", "", "Perform reverse lookup on IP address or CIDR range. Supports files and quoted lists")
+	unique_sort := flag.Bool("u", false, "Ensures results are unique, may cause instability on large queries due to RAM requirements")
+
+	resultsChan := make(chan string)
 
 	flag.Parse()
 
+	go func() {
+		uniqueSlice := UniqueStringSlice{}
+		for result := range resultsChan {
+			if *unique_sort {
+				if uniqueSlice.Append(result) {
+					fmt.Println(result)
+				}
+			} else {
+				fmt.Println(result)
+			}
+		}
+	}()
+
 	client := NewCrobatClient()
 	if *domain_sub != "" {
-		client.GetSubdomains(*domain_sub)
+		client.GetSubdomains(*domain_sub, resultsChan)
 	} else if *domain_tld != "" {
-		client.GetTlds(*domain_tld)
+		client.GetTlds(*domain_tld, resultsChan)
 	} else if *reverse_dns != "" {
 		if !strings.Contains(*reverse_dns, "/") {
-			client.ReverseDNS(*reverse_dns)
+			client.ReverseDNS(*reverse_dns, resultsChan)
 		} else {
-			client.ReverseDNSRange(*reverse_dns)
+			client.ReverseDNSRange(*reverse_dns, resultsChan)
 		}
 	}
 
