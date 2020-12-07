@@ -41,14 +41,15 @@ By default, Crobat will return a list of result in plain-text, however, JSON out
 
 Below is a full list of command line flags:
 ``` normal
-$ crobat -h
+$ crobat -h                                                                                                                                                                      
 Usage of crobat:
   -r string
-        Perform reverse lookup on IP address or CIDR range
+    	Perform reverse lookup on IP address or CIDR range. Supports files and quoted lists
   -s string
-        Get subdomains for this value
+    	Get subdomains for this value. Supports files and quoted lists
   -t string
-        Get tlds for this value
+    	Get tlds for this value. Supports files and quoted lists
+  -u	Ensures results are unique, may cause instability on large queries due to RAM requirements
 ```
 
 Additionally, it is now possible to pass either file names, or quoted lists ('example.com example.co.uk') as the value for each flag in order to specify multiple domains/ranges.
