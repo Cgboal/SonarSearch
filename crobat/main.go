@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 type CrobatClient struct {
@@ -186,10 +187,13 @@ func main() {
 	unique_sort := flag.Bool("u", false, "Ensures results are unique, may cause instability on large queries due to RAM requirements")
 
 	resultsChan := make(chan string)
+	var wg sync.WaitGroup
 
 	flag.Parse()
 
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		uniqueSlice := UniqueStringSlice{}
 		for result := range resultsChan {
 			if *unique_sort {
@@ -214,5 +218,7 @@ func main() {
 			client.ReverseDNSRange(*reverse_dns, resultsChan)
 		}
 	}
+
+	wg.Wait()
 
 }
