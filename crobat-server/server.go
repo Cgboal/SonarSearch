@@ -15,6 +15,7 @@ import (
 	"time"
 	"net"
 	"errors"
+	"strings"
 )
 
 type domainHandler = func(w http.ResponseWriter, r *http.Request, cur *mongo.Cursor, ctx context.Context)
@@ -96,10 +97,14 @@ func (s *server) SubdomainHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, _ := context.WithTimeout(context.Background(), 120*time.Second)
 		vars := mux.Vars(r)
-		domain := s.dp.GetDomain(vars["domain"])
+		fullDomain := vars["domain"]
+		domain := s.dp.GetDomain(fullDomain)
 		tld := s.dp.GetTld(vars["domain"])
 		query := bson.M{"domain": domain, "tld": tld}
 
+		fullDomainParts := strings.Split(fullDomain, ".")
+		filterResults := (len(fullDomainParts) >= 3)
+		
 		page, err := get_page_id(r)
 		if err != nil {
 			internal_error(w, err)
@@ -117,7 +122,13 @@ func (s *server) SubdomainHandler() http.HandlerFunc {
 		for cur.Next(ctx) {
 			var domain SonarDomain
 			cur.Decode(&domain)
-			domains = append(domains, domain.GetFullDomain())
+			result := domain.GetFullDomain()
+			if filterResults {
+				if !strings.Contains(result, fullDomain) {
+					continue
+				}
+			}
+			domains = append(domains, result)
 		}
 		json_response(w, domains)
 	}

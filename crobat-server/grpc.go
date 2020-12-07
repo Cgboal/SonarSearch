@@ -11,6 +11,7 @@ import (
 	"log"
 	"net"
 	"time"
+	"strings"
 )
 
 type crobatServer struct {
@@ -43,16 +44,26 @@ func (s *crobatServer) GetSubdomains(query *crobat.QueryRequest, stream crobat.C
 	ctx := context.Background()
 	domain := s.dp.GetDomain(query.Query)
 	tld := s.dp.GetTld(query.Query)
+	fullDomain := query.Query
+	fullDomainParts := strings.Split(fullDomain, ".")
+	filterResults := (len(fullDomainParts) >= 3)
 	mongoQuery := bson.M{"domain": domain, "tld": tld}
 	opts := options.Find().SetProjection(bson.D{{"subdomain", 1}, {"domain", 1}, {"tld", 1}})
 	cur, err := collection.Find(ctx, mongoQuery, opts)
 	if err != nil {
 		return err
 	}
+
 	defer cur.Close(ctx)
 	for cur.Next(ctx) {
 		var domain SonarDomain
 		cur.Decode(&domain)
+		result := domain.GetFullDomain()
+		if filterResults {
+			if !strings.Contains(result, fullDomain) {
+				continue
+			}
+		}
 		reply := &crobat.Domain{
 			Domain: domain.GetFullDomain(),
 			Ipv4:   domain.Value,
