@@ -124,7 +124,7 @@ func (s *server) SubdomainHandler() http.HandlerFunc {
 			cur.Decode(&domain)
 			result := domain.GetFullDomain()
 			if filterResults {
-				if !strings.Contains(result, fullDomain) {
+				if !strings.Contains(result, "." + fullDomain) {
 					continue
 				}
 			}

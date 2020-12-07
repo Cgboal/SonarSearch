@@ -60,7 +60,7 @@ func (s *crobatServer) GetSubdomains(query *crobat.QueryRequest, stream crobat.C
 		cur.Decode(&domain)
 		result := domain.GetFullDomain()
 		if filterResults {
-			if !strings.Contains(result, fullDomain) {
+			if !strings.Contains(result, "." + fullDomain) {
 				continue
 			}
 		}
