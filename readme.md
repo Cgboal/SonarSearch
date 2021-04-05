@@ -8,6 +8,34 @@ An instance of this API (Crobat) is online at the following URL:
 
 > https://sonar.omnisint.io
 
+### Crobat
+Crobat is a command line utility designed to allow easy querying of the Crobat API. To install the client, run the following command: 
+``` normal
+$ go get github.com/cgboal/sonarsearch/crobat
+```
+
+A Docker container is also available: 
+```normal
+$ docker run cgboal/crobat:latest -h 
+```
+
+By default, Crobat will return a list of result in plain-text, however, JSON output is also supported. 
+
+Below is a full list of command line flags:
+``` normal
+$ crobat -h                                                                                                                                                                      
+Usage of crobat:
+  -r string
+    	Perform reverse lookup on IP address or CIDR range. Supports files and quoted lists
+  -s string
+    	Get subdomains for this value. Supports files and quoted lists
+  -t string
+    	Get tlds for this value. Supports files and quoted lists
+  -u	Ensures results are unique, may cause instability on large queries due to RAM requirements
+```
+
+Additionally, it is now possible to pass either file names, or quoted lists ('example.com example.co.uk') as the value for each flag in order to specify multiple domains/ranges.
+
 ### Crobat API
 
 Currently, Project Crobat offers two APIs. The first of these is a REST API, with the following endpoints: 
@@ -25,33 +53,6 @@ Additionally, Project Crobat offers a gRPC API which is used by the client to st
 No authentication is required to use the API, nor special headers, so go nuts. 
 
 However, the REST API does have pagination. Currently pages are limited to 10k results per page. To request pages, add `?page=X` to the request, where `X` is the page number. The gRPC API does not require pagination as results are streamed to the client. 
-
-### Crobat
-Crobat is a command line utility designed to allow easy querying of the Crobat API. To install the client, run the following command: 
-``` normal
-$ go get github.com/cgboal/sonarsearch/crobat
-```
-
-A Docker container is also available: 
-```normal
-$ docker run cgboal/crobat:latest -h 
-```
-
-By default, Crobat will return a list of result in plain-text, however, JSON output is also supported. 
-
-Below is a full list of command line flags:
-``` normal
-$ crobat -h
-Usage of crobat:
-  -r string
-        Perform reverse lookup on IP address or CIDR range
-  -s string
-        Get subdomains for this value
-  -t string
-        Get tlds for this value
-```
-
-Additionally, it is now possible to pass either file names, or quoted lists ('example.com example.co.uk') as the value for each flag in order to specify multiple domains/ranges.
 
 
 ### Third-Party SDKs
