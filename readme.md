@@ -8,24 +8,6 @@ An instance of this API (Crobat) is online at the following URL:
 
 > https://sonar.omnisint.io
 
-### Crobat API
-
-Currently, Project Crobat offers two APIs. The first of these is a REST API, with the following endpoints: 
-
-``` normal
-/subdomains/{domain} - All subdomains for a given domain
-/tlds/{domain} - All tlds found for a given domain
-/all/{domain} - All results across all tlds for a given domain
-/reverse/{ip} - Reverse DNS lookup on IP address
-/reverse/{ip}/{mask} - Reverse DNS lookup of a CIDR range
-```
-
-Additionally, Project Crobat offers a gRPC API which is used by the client to stream results over HTTP/2. Thus, it is recommended that the client is used for large queries as it reduces both query execution times, and server load. Also, unlike the REST API, there is no limit to the size of specified when performing reverse DNS lookups. 
-
-No authentication is required to use the API, nor special headers, so go nuts. 
-
-However, the REST API does have pagination. Currently pages are limited to 10k results per page. To request pages, add `?page=X` to the request, where `X` is the page number. The gRPC API does not require pagination as results are streamed to the client. 
-
 ### Crobat
 Crobat is a command line utility designed to allow easy querying of the Crobat API. To install the client, run the following command: 
 ``` normal
@@ -53,6 +35,24 @@ Usage of crobat:
 ```
 
 Additionally, it is now possible to pass either file names, or quoted lists ('example.com example.co.uk') as the value for each flag in order to specify multiple domains/ranges.
+
+### Crobat API
+
+Currently, Project Crobat offers two APIs. The first of these is a REST API, with the following endpoints: 
+
+``` normal
+/subdomains/{domain} - All subdomains for a given domain
+/tlds/{domain} - All tlds found for a given domain
+/all/{domain} - All results across all tlds for a given domain
+/reverse/{ip} - Reverse DNS lookup on IP address
+/reverse/{ip}/{mask} - Reverse DNS lookup of a CIDR range
+```
+
+Additionally, Project Crobat offers a gRPC API which is used by the client to stream results over HTTP/2. Thus, it is recommended that the client is used for large queries as it reduces both query execution times, and server load. Also, unlike the REST API, there is no limit to the size of specified when performing reverse DNS lookups. 
+
+No authentication is required to use the API, nor special headers, so go nuts. 
+
+However, the REST API does have pagination. Currently pages are limited to 10k results per page. To request pages, add `?page=X` to the request, where `X` is the page number. The gRPC API does not require pagination as results are streamed to the client. 
 
 
 ### Third-Party SDKs
