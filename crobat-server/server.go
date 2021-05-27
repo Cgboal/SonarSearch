@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/Cgboal/DomainParser"
 	"github.com/gorilla/mux"
@@ -10,21 +11,19 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
-	"time"
-	"net"
-	"errors"
 	"strings"
+	"time"
 )
 
 type domainHandler = func(w http.ResponseWriter, r *http.Request, cur *mongo.Cursor, ctx context.Context)
 
 type server struct {
-	db         *mongo.Client
-	Router     *mux.Router
-	pagination int
-	dp         parser.Parser
+	db     *mongo.Client
+	Router *mux.Router
+	dp     parser.Parser
 }
 
 func NewServer() server {
@@ -40,10 +39,9 @@ func NewServer() server {
 	}
 
 	server := server{
-		db:         client,
-		Router:     mux.NewRouter(),
-		pagination: 10000,
-		dp:         parser.NewDomainParser(),
+		db:     client,
+		Router: mux.NewRouter(),
+		dp:     parser.NewDomainParser(),
 	}
 	server.routes()
 
@@ -68,21 +66,36 @@ func json_response(w http.ResponseWriter, v interface{}) {
 }
 
 func get_page_id(r *http.Request) (int, error) {
-	page, ok := r.URL.Query()["page"]
-	if !ok {
-		page = []string{"0"}
+	page := r.URL.Query().Get("page")
+	if page == "" {
+		page = "0"
 	}
 
-	page_int, err := strconv.Atoi(page[0])
+	page_int, err := strconv.Atoi(page)
 	return page_int, err
 
 }
 
-func (s *server) paginateDomains(ctx context.Context, page int, query bson.M, opts ...*options.FindOptions) (*mongo.Cursor, error) {
+func get_limit(r *http.Request) (int, error) {
+	limit := r.URL.Query().Get("limit")
+	if limit == "" {
+		limit = "10000"
+	}
+
+	limit_int, err := strconv.Atoi(limit)
+	if limit_int > 10000 {
+		limit_int = 10000
+	}
+
+	return limit_int, err
+
+}
+
+func (s *server) paginateDomains(ctx context.Context, page int, limit int, query bson.M, opts ...*options.FindOptions) (*mongo.Cursor, error) {
 	collection := s.db.Database("sonar").Collection("A")
 
-	opts = append(opts, options.Find().SetLimit(int64(s.pagination)))
-	opts = append(opts, options.Find().SetSkip(int64(s.pagination*page)))
+	opts = append(opts, options.Find().SetLimit(int64(limit)))
+	opts = append(opts, options.Find().SetSkip(int64(limit*page)))
 	cur, err := collection.Find(ctx, query, opts...)
 
 	if err != nil {
@@ -104,15 +117,20 @@ func (s *server) SubdomainHandler() http.HandlerFunc {
 
 		fullDomainParts := strings.Split(fullDomain, ".")
 		filterResults := (len(fullDomainParts) >= 3)
-		
+
 		page, err := get_page_id(r)
+		if err != nil {
+			internal_error(w, err)
+			return
+		}
+		limit, err := get_limit(r)
 		if err != nil {
 			internal_error(w, err)
 			return
 		}
 
 		opts := options.Find().SetProjection(bson.D{{"subdomain", 1}, {"domain", 1}, {"tld", 1}})
-		cur, err := s.paginateDomains(ctx, page, query, opts)
+		cur, err := s.paginateDomains(ctx, page, limit, query, opts)
 		if err != nil {
 			internal_error(w, err)
 			return
@@ -124,7 +142,7 @@ func (s *server) SubdomainHandler() http.HandlerFunc {
 			cur.Decode(&domain)
 			result := domain.GetFullDomain()
 			if filterResults {
-				if !strings.Contains(result, "." + fullDomain) {
+				if !strings.Contains(result, "."+fullDomain) {
 					continue
 				}
 			}
@@ -236,7 +254,13 @@ func (s *server) AllHandler() http.HandlerFunc {
 			return
 		}
 
-		cur, err := s.paginateDomains(ctx, page, query)
+		limit, err := get_limit(r)
+		if err != nil {
+			internal_error(w, err)
+			return
+		}
+
+		cur, err := s.paginateDomains(ctx, page, limit, query)
 		defer cur.Close(ctx)
 		var domains []SonarDomain
 		for cur.Next(ctx) {
