@@ -2,6 +2,12 @@
 <p align="center">
   <img width="30%" height="30%" src="https://sonar.omnisint.io/img/crobat.png">
 </p>
+
+## Update 29/08/21 
+Unforutnately Crobat is currently experiencing extremely high server load due to the 60 million+ requests recieved each day. I am working on a version 2 which should be much more efficient and capable of handling this load. It should be online by 01/09/21. If you are experiencing issues with the service at this time, please know that it is temporary, and will be resolved soon. Follow @omnisint or @calumboal on Twitter for updates. 
+
+-----
+
 This repository contains all the code needed to create index Rapid7's Project Sonar Forward DNS lookup datasets into a MongoDB database, and query them in a time efficient fashion. 
 
 An instance of this API (Crobat) is online at the following URL: 
