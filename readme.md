@@ -1,8 +1,8 @@
-## SonarSearch
+## SonarSearch v2
 <p align="center">
   <img width="30%" height="30%" src="https://sonar.omnisint.io/img/crobat.png">
 </p>
-This repository contains all the code needed to create index Rapid7's Project Sonar Forward DNS lookup datasets into a MongoDB database, and query them in a time efficient fashion. 
+This repo contains all the tools needed to create a blazing fast API for Rapid7's Project Sonar dataset. It employs a custom indexing method in order to achieve fast lookups of both subdomains for a given domain, and domains which resolve to a given IP address. 
 
 An instance of this API (Crobat) is online at the following URL: 
 
@@ -13,13 +13,6 @@ Crobat is a command line utility designed to allow easy querying of the Crobat A
 ``` normal
 $ go get github.com/cgboal/sonarsearch/crobat
 ```
-
-A Docker container is also available: 
-```normal
-$ docker run cgboal/crobat:latest -h 
-```
-
-By default, Crobat will return a list of result in plain-text, however, JSON output is also supported. 
 
 Below is a full list of command line flags:
 ``` normal
@@ -51,9 +44,6 @@ Currently, Project Crobat offers two APIs. The first of these is a REST API, wit
 Additionally, Project Crobat offers a gRPC API which is used by the client to stream results over HTTP/2. Thus, it is recommended that the client is used for large queries as it reduces both query execution times, and server load. Also, unlike the REST API, there is no limit to the size of specified when performing reverse DNS lookups. 
 
 No authentication is required to use the API, nor special headers, so go nuts. 
-
-However, the REST API does have pagination. Currently pages are limited to 10k results per page. To request pages, add `?page=X` to the request, where `X` is the page number. The gRPC API does not require pagination as results are streamed to the client. 
-
 
 ### Third-Party SDKs
 
