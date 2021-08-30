@@ -11,7 +11,7 @@ An instance of this API (Crobat) is online at the following URL:
 ### Crobat
 Crobat is a command line utility designed to allow easy querying of the Crobat API. To install the client, run the following command: 
 ``` normal
-$ go get github.com/cgboal/sonarsearch/crobat
+$ go get github.com/Cgboal/SonarSearch/crobat
 ```
 
 Below is a full list of command line flags:
