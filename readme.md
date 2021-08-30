@@ -2,7 +2,12 @@
 <p align="center">
   <img width="30%" height="30%" src="https://sonar.omnisint.io/img/crobat.png">
 </p>
+
+
 This repo contains all the tools needed to create a blazing fast API for Rapid7's Project Sonar dataset. It employs a custom indexing method in order to achieve fast lookups of both subdomains for a given domain, and domains which resolve to a given IP address. 
+
+-----
+
 
 An instance of this API (Crobat) is online at the following URL: 
 
