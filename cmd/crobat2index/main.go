@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strconv"
 
@@ -36,17 +35,11 @@ func reverseKey(entry string) string {
 	return fmt.Sprintf("%d", key)
 }
 
-func writeIndex(keyFunc KeyFunc, inputFileName string, outputFileName string) error {
+func generateIndex(keyFunc KeyFunc, inputFileName string) error {
 	reader, err := getReader(inputFileName)
 	if err != nil {
 		return err
 	}
-
-	outputFile, err := os.Create(outputFileName)
-	if err != nil {
-		log.Fatal(err)
-	}
-	writer := bufio.NewWriter(outputFile)
 
 	pos := int64(0)
 	currentKey := ""
@@ -59,7 +52,8 @@ func writeIndex(keyFunc KeyFunc, inputFileName string, outputFileName string) er
 			entry := string(line[:delimPos])
 			key := keyFunc(entry)
 			if key != currentKey {
-				writer.WriteString(fmt.Sprintf("%s:::%d\n", key, pos))
+				posString := fmt.Sprint(pos)
+				fmt.Printf("*3\r\n$3\r\nSET\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", len(key), key, len(posString), posString)
 				currentKey = key
 			}
 		}
@@ -77,12 +71,11 @@ func writeIndex(keyFunc KeyFunc, inputFileName string, outputFileName string) er
 
 func main() {
 	inputFileName := flag.String("i", "", "file path for raw sonar dataset")
-	outputFileName := flag.String("o", "", "file path to store new, sorted dataset")
 	format := flag.String("f", "", "what output format to use, can be 'domain' or 'reverse'")
 
 	flag.Parse()
 
-	if *inputFileName == "" || *outputFileName == "" || *format == "" {
+	if *inputFileName == "" || *format == "" {
 		flag.Usage()
 	}
 
@@ -95,5 +88,5 @@ func main() {
 		fmt.Println("Format must be either 'domain' or 'reverse', got " + *format)
 		os.Exit(1)
 	}
-	writeIndex(keyFunc, *inputFileName, *outputFileName)
+	generateIndex(keyFunc, *inputFileName)
 }

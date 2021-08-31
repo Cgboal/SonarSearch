@@ -65,7 +65,12 @@ func NewReverseSearch(inputFileName string, query string) (*ReverseSearch, error
 	}
 
 	needleIndexString := fmt.Sprint(needleIndex)
-	pos := reverseIndex[needleIndexString]
+
+	pos, err := getPos(needleIndexString)
+
+	if err != nil {
+		return nil, err
+	}
 
 	if pos == 0 {
 		return nil, errors.New("no results found")
@@ -92,6 +97,7 @@ func (rs *ReverseSearch) Next() bool {
 		line, err := rs.reader.ReadBytes('\n')
 		if err == io.EOF {
 			rs.err = err
+			return false
 		}
 
 		lineParts := strings.Split(string(line), ",")
@@ -103,6 +109,8 @@ func (rs *ReverseSearch) Next() bool {
 
 		if candidateUInt32 < rs.needle.Min || candidateUInt32 > rs.needle.Max {
 			if rs.foundFirst {
+				return false
+			} else if candidateUInt32 > rs.needle.Max {
 				return false
 			} else {
 				continue

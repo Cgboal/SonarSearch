@@ -41,7 +41,12 @@ func NewDomainSearch(inputFileName string, query string, needleFunc domainNeedle
 		return nil, err
 	}
 
-	pos := domainIndex[queryDomain.Domain]
+	pos, err := getPos(queryDomain.Domain)
+
+	if err != nil {
+		return nil, err
+	}
+
 	if pos == 0 {
 		return nil, errors.New("no results found")
 	}
@@ -67,6 +72,11 @@ func (ds *DomainSearch) Next() bool {
 		line, err := ds.reader.ReadBytes('\n')
 		if err == io.EOF {
 			ds.err = err
+			return false
+		}
+
+		if len(line) < ds.needleLen {
+			continue
 		}
 
 		if string(line[:ds.needleLen]) != ds.needle {
