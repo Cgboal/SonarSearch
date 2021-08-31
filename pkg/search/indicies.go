@@ -1,49 +1,32 @@
 package search
 
 import (
-	"bufio"
-	"os"
+	"context"
+	"github.com/go-redis/redis/v8"
 	"strconv"
-	"strings"
+	"fmt"
 )
 
-var domainIndex map[string]int64
-var reverseIndex map[string]int64
+func newRedisClient() *redis.Client {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
 
-func loadIndex(indexFileName string, globalIndex *map[string]int64) error {
-	indexFile, err := os.Open(indexFileName)
+	return rdb
+}
+
+func getPos(key string) (int64, error) {
+	client := newRedisClient()
+	defer client.Close()
+	ctx := context.Background()
+	val, err := client.Get(ctx, key).Result()
 	if err != nil {
-		return err
+		return 0, err
 	}
+	fmt.Println(val)
 
-	index := map[string]int64{}
-
-	scanner := bufio.NewScanner(indexFile)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		parts := strings.Split(line, ":::")
-		if len(parts) < 2 {
-			continue
-		}
-		key := parts[0]
-		pos, err := strconv.ParseInt(parts[1], 10, 64)
-		if err != nil {
-			return err
-		}
-
-		index[key] = pos
-	}
-
-	*globalIndex = index
-
-	return nil
-}
-
-func LoadDomainIndex(indexFileName string) error {
-	return loadIndex(indexFileName, &domainIndex)
-}
-
-func LoadReverseIndex(indexFileName string) error {
-	return loadIndex(indexFileName, &reverseIndex)
+	valInt, _ := strconv.ParseInt(val, 10, 64)
+	return valInt, nil
 }

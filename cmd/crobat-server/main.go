@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/spf13/viper"
 	"github.com/cgboal/sonarsearch/cmd/crobat-server/rest"
-	"github.com/cgboal/sonarsearch/pkg/search"
 	"net"
 	crobat "github.com/cgboal/sonarsearch/proto"
 	"log"
@@ -18,8 +17,6 @@ func init() {
 
 
 func main() {
-	search.LoadDomainIndex(viper.GetString("domain_index"))
-	search.LoadReverseIndex(viper.GetString("reverse_index"))
 	restServer := rest.NewServer()
 	go restServer.Run(":1998")
 

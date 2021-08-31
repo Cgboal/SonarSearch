@@ -16,6 +16,7 @@ func FindSubdomains(c *gin.Context) {
 	searcher, err := search.NewDomainSearch(viper.GetString("domain_file"), c.Param("domain"), search.FullDomainNeedle)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 	defer searcher.Close()
 	subdomains := searcher.Collect()
@@ -26,6 +27,7 @@ func FindAll(c *gin.Context) {
 	searcher, err := search.NewDomainSearch(viper.GetString("domain_file"), c.Param("domain"), search.DomainNeedle)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 	defer searcher.Close()
 	subdomains := searcher.Collect()
@@ -36,6 +38,7 @@ func FindTLDs(c *gin.Context) {
 	searcher, err := search.NewDomainSearch(viper.GetString("domain_file"), c.Param("domain"), search.DomainNeedle)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 	defer searcher.Close()
 	subdomains := searcher.Collect()
