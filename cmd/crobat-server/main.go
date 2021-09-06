@@ -17,8 +17,9 @@ func init() {
 
 
 func main() {
-	restServer := rest.NewServer()
-	go restServer.Run(":1998")
+	restRouter := rest.NewRouter()
+
+	go restRouter.Run(":1998")
 
 	lis, err := net.Listen("tcp", ":1997")
 	if err != nil {

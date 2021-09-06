@@ -3,24 +3,57 @@ package rest
 import (
 	"net/http"
 
+	"fmt"
+	"github.com/Cgboal/DomainParser"
 	"github.com/cgboal/sonarsearch/pkg/search"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
-	"fmt"
-	"github.com/Cgboal/DomainParser"
+	"strconv"
 )
 
 var dp parser.Parser
 
-func FindSubdomains(c *gin.Context) {
-	searcher, err := search.NewDomainSearch(viper.GetString("domain_file"), c.Param("domain"), search.FullDomainNeedle)
+var reverseQueries chan search.ReverseQuery
+var domainQueries chan search.DomainQuery
+
+func paginationHelper(c *gin.Context) (int, int) {
+	limitString := c.Query("limit")
+	pageString := c.Query("page")
+
+	limit, err := strconv.Atoi(limitString)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		limit = 100000
+	}
+	page, err := strconv.Atoi(pageString)
+	if err != nil {
+		page = 1
+	}
+
+	if page == 0 {
+		page = 1
+	}
+
+	skip := (page - 1) * limit
+	return skip, limit
+
+}
+
+func FindSubdomains(c *gin.Context) {
+	query := c.Param("domain")
+	skip, take := paginationHelper(c)
+	responseChan := make(chan search.DomainResponse, 1)
+
+	defer close(responseChan)
+
+	domainQueries <- search.DomainQuery{Query: query, Take: take, Skip: skip, ResponseChannel: responseChan, NeedleFunc: search.FullDomainNeedle}
+
+	response := <- responseChan
+
+	if response.Err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": response.Err.Error()})
 		return
 	}
-	defer searcher.Close()
-	subdomains := searcher.Collect()
-	c.JSON(http.StatusOK, subdomains)
+	c.JSON(http.StatusOK, response.Subdomains)
 }
 
 func FindAll(c *gin.Context) {
@@ -30,7 +63,8 @@ func FindAll(c *gin.Context) {
 		return
 	}
 	defer searcher.Close()
-	subdomains := searcher.Collect()
+	skip, limit := paginationHelper(c)
+	subdomains := searcher.Skip(skip).Take(limit)
 	c.JSON(http.StatusOK, subdomains)
 }
 
@@ -41,12 +75,14 @@ func FindTLDs(c *gin.Context) {
 		return
 	}
 	defer searcher.Close()
-	subdomains := searcher.Collect()
+	skip, limit := paginationHelper(c)
+	subdomains := searcher.Skip(skip).Take(limit)
 	uniqueTLDs := map[string]struct{}{}
 	for _, subdomain := range subdomains {
 		domain := dp.ParseDomain(subdomain)
 		fullDomain := fmt.Sprintf("%s.%s", domain.Domain, domain.TLD)
-		_, exists := uniqueTLDs[fullDomain]; if !exists {
+		_, exists := uniqueTLDs[fullDomain]
+		if !exists {
 			uniqueTLDs[fullDomain] = struct{}{}
 		}
 	}
@@ -62,32 +98,54 @@ func FindTLDs(c *gin.Context) {
 
 func ReverseDNS(c *gin.Context) {
 	query := c.Param("ip")
-	searcher, err := search.NewReverseSearch(viper.GetString("reverse_file"), query)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	skip, take := paginationHelper(c)
+	responseChan := make(chan search.ReverseResponse, 1)
+
+	defer close(responseChan)
+
+	reverseQueries <- search.ReverseQuery{Query: query, Take: take, Skip: skip, ResponseChannel: responseChan}
+
+	response := <-responseChan
+
+	if response.Err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": response.Err.Error()})
 		return
 	}
-	defer searcher.Close()
-	results := searcher.Collect()
-	c.JSON(http.StatusOK, results[query])
-	return
+
+	c.JSON(http.StatusOK, response.Results[query])
 }
 
 func ReverseDNSCIDR(c *gin.Context) {
 	query := fmt.Sprintf("%s/%s", c.Param("ip"), c.Param("cidr"))
-	searcher, err := search.NewReverseSearch(viper.GetString("reverse_file"), query)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	skip, take := paginationHelper(c)
+	responseChan := make(chan search.ReverseResponse, 1)
+
+	defer close(responseChan)
+
+	reverseQueries <- search.ReverseQuery{Query: query, Take: take, Skip: skip, ResponseChannel: responseChan}
+
+	response := <-responseChan
+
+	if response.Err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": response.Err.Error()})
 		return
 	}
-	defer searcher.Close()
-	results := searcher.Collect()
-	c.JSON(http.StatusOK, results)
+
+	c.JSON(http.StatusOK, response.Results)
 	return
 }
 
-func NewServer() *gin.Engine {
-	r := gin.Default()
+func NewRouter() *gin.Engine {
+	gin.SetMode(gin.ReleaseMode)
+
+	r := gin.New()
+	r.Use(gin.Recovery())
+
+	reverseQueries = make(chan search.ReverseQuery, 1)
+	domainQueries = make(chan search.DomainQuery, 1)
+
+	search.NewReversePool(reverseQueries)
+	search.NewDomainPool(domainQueries)
 
 	dp = parser.NewDomainParser()
 

@@ -16,6 +16,27 @@ func incIP(ip net.IP) {
 	}
 }
 
+func BytesToIPv4(IPv4Bytes []byte) string {
+	IPv4Int := binary.LittleEndian.Uint32(IPv4Bytes)
+	IPv4String := IntToIPv4(IPv4Int)
+	return IPv4String
+
+}
+
+func IPv4ToBytes(IPv4String string) ([]byte, error) {
+	IPv4Bytes := make([]byte, 4)
+
+	IPv4Int, err := IPv4ToInt(IPv4String)
+	if err != nil {
+		return nil, err
+	}
+
+	binary.LittleEndian.PutUint32(IPv4Bytes, IPv4Int)
+
+	return IPv4Bytes, nil
+
+}
+
 func IPv4ToInt(IPv4String string) (uint32, error) {
 	IPv4Addr := net.ParseIP(IPv4String)
 	if IPv4Addr == nil {

@@ -31,7 +31,7 @@ func domainKey(entry string) string {
 func reverseKey(entry string) string {
 	entryInt, _ := strconv.ParseUint(entry, 10, 32)
 
-	key := ipconv.RoundDecIP(uint32(entryInt), 1000)
+	key := ipconv.RoundDecIP(uint32(entryInt), 10)
 	return fmt.Sprintf("%d", key)
 }
 

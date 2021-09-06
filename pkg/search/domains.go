@@ -8,7 +8,10 @@ import (
 	"os"
 	"strings"
 
+	"time"
+
 	parser "github.com/Cgboal/DomainParser"
+	"github.com/spf13/viper"
 )
 
 var dp parser.Parser
@@ -23,10 +26,51 @@ type DomainSearch struct {
 	file       *os.File
 	needle     string
 	needleLen  int
-	reader     *bufio.Reader
+	scanner    *bufio.Scanner
 	subdomain  string
+	query      []byte
 	err        error
 	foundFirst bool
+}
+
+type DomainResponse struct {
+	Subdomains []string
+	Err        error
+}
+
+type DomainQuery struct {
+	Query           string
+	NeedleFunc      domainNeedleFunc
+	Take            int
+	Skip            int
+	ResponseChannel chan DomainResponse
+}
+
+func NewDomainPool(requests <-chan DomainQuery) {
+	for i := 0; i < 5; i++ {
+		go startDomainWorker(requests)
+	}
+}
+
+func startDomainWorker(requests <-chan DomainQuery) {
+	for query := range requests {
+		searcher, err := NewDomainSearch(viper.GetString("domain_file"), query.Query, query.NeedleFunc)
+		if err != nil {
+			query.ResponseChannel <- DomainResponse{
+				Err: err,
+			}
+			continue
+		}
+
+		subdomains := searcher.Skip(query.Skip).Take(query.Take)
+
+		query.ResponseChannel <- DomainResponse{
+			Subdomains: subdomains,
+			Err:        nil,
+		}
+		searcher.Close()
+	}
+
 }
 
 func NewDomainSearch(inputFileName string, query string, needleFunc domainNeedleFunc) (*DomainSearch, error) {
@@ -51,7 +95,7 @@ func NewDomainSearch(inputFileName string, query string, needleFunc domainNeedle
 		return nil, errors.New("no results found")
 	}
 
-	reader, file, err := getReader(inputFileName, pos)
+	scanner, file, err := getScanner(inputFileName, pos)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +104,8 @@ func NewDomainSearch(inputFileName string, query string, needleFunc domainNeedle
 		file:      file,
 		needle:    needle,
 		needleLen: len(needle),
-		reader:    reader,
+		query:     []byte(query),
+		scanner:   scanner,
 	}
 
 	return &domainSearch, nil
@@ -68,18 +113,27 @@ func NewDomainSearch(inputFileName string, query string, needleFunc domainNeedle
 }
 
 func (ds *DomainSearch) Next() bool {
+	timeout := time.After(100 * time.Millisecond)
 	for {
-		line, err := ds.reader.ReadBytes('\n')
-		if err == io.EOF {
-			ds.err = err
+		select {
+		case <-timeout:
+			fmt.Printf("TIMEOUT ON %s\n", ds.query)
+			ds.err = errors.New("timeout retrieving entry")
+			return false
+		default:
+			break
+		}
+
+		if !ds.scanner.Scan() {
+			ds.err = io.EOF
 			return false
 		}
 
-		if len(line) < ds.needleLen {
+		if len(ds.scanner.Bytes()) < ds.needleLen {
 			continue
 		}
 
-		if string(line[:ds.needleLen]) != ds.needle {
+		if string(ds.scanner.Bytes()[:ds.needleLen]) != ds.needle {
 			if ds.foundFirst {
 				return false
 			} else {
@@ -88,7 +142,7 @@ func (ds *DomainSearch) Next() bool {
 		}
 
 		ds.foundFirst = true
-		ds.subdomain = reconstructDomainLine(line)
+		ds.subdomain = reconstructDomainLine(ds.scanner.Bytes())
 		return true
 	}
 }
@@ -105,9 +159,23 @@ func (ds *DomainSearch) Error() error {
 	return ds.err
 }
 
-func (ds *DomainSearch) Collect() []string {
+func (ds *DomainSearch) Skip(size int) *DomainSearch {
+	for i := 0; i < size; i++ {
+		if !ds.Next() {
+			break
+		}
+	}
+
+	return ds
+}
+
+func (ds *DomainSearch) Take(size int) []string {
 	subdomains := []string{}
-	for ds.Next() {
+	for i := 0; i < size; i++ {
+		if !ds.Next() {
+			break
+		}
+
 		subdomains = append(subdomains, ds.Text())
 
 		if ds.err == io.EOF {
@@ -118,7 +186,7 @@ func (ds *DomainSearch) Collect() []string {
 	return subdomains
 }
 
-func getReader(fileName string, pos int64) (*bufio.Reader, *os.File, error) {
+func getScanner(fileName string, pos int64) (*bufio.Scanner, *os.File, error) {
 	inputFile, err := os.Open(fileName)
 	if err != nil {
 		return nil, inputFile, err
@@ -126,8 +194,9 @@ func getReader(fileName string, pos int64) (*bufio.Reader, *os.File, error) {
 
 	inputFile.Seek(int64(pos), 0)
 
-	reader := bufio.NewReader(inputFile)
-	return reader, inputFile, nil
+	scanner := bufio.NewScanner(inputFile)
+	scanner.Buffer(make([]byte, 10240), 10240)
+	return scanner, inputFile, nil
 }
 
 func FullDomainNeedle(queryDomain parser.Domain) (string, error) {
@@ -147,7 +216,7 @@ func reconstructDomainLine(line []byte) string {
 	parts := strings.Split(lineStr, ",")
 
 	var subdomain string
-	if parts[2] == "\n" {
+	if len(parts[2]) == 0 {
 		subdomain = fmt.Sprintf("%s.%s", parts[0], parts[1])
 	} else {
 		parts[2] = strings.TrimRight(parts[2], "\n")
