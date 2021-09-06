@@ -5,20 +5,25 @@ import (
 	"errors"
 	"os"
 	"strconv"
+	"time"
 
 	"fmt"
 	"io"
 	"strings"
 
+	"bytes"
+
 	"github.com/cgboal/sonarsearch/pkg/ipconv"
+	"github.com/spf13/viper"
 )
 
 type ReverseSearch struct {
 	file          *os.File
 	needle        reverseNeedle
-	reader        *bufio.Reader
+	scanner       *bufio.Scanner
 	reverseResult reverseResult
 	err           error
+	query string
 	foundFirst    bool
 }
 
@@ -31,6 +36,44 @@ type reverseNeedle struct {
 	Max uint32
 }
 
+type ReverseResponse struct {
+	Results map[string][]string
+	Err     error
+}
+
+type ReverseQuery struct {
+	Query           string
+	Take            int
+	Skip            int
+	ResponseChannel chan ReverseResponse
+}
+
+func NewReversePool(requests <-chan ReverseQuery) {
+	for i := 0; i < 5; i++ {
+		go startReverseWorker(requests)
+	}
+}
+
+func startReverseWorker(requests <-chan ReverseQuery) {
+	for query := range requests {
+		searcher, err := NewReverseSearch(viper.GetString("reverse_file"), query.Query)
+		if err != nil {
+			query.ResponseChannel <- ReverseResponse{
+				Err: err,
+			}
+			continue
+		}
+
+		results := searcher.Skip(query.Skip).Take(query.Take)
+
+		query.ResponseChannel <- ReverseResponse{
+			Results: results,
+			Err:     nil,
+		}
+		searcher.Close()
+	}
+
+}
 func newReverseNeedle(query string) (reverseNeedle, error) {
 	if !strings.Contains(query, "/") {
 		query = query + "/32"
@@ -58,7 +101,7 @@ func NewReverseSearch(inputFileName string, query string) (*ReverseSearch, error
 		return nil, err
 	}
 
-	needleIndex := ipconv.RoundDecIP(needle.Min, 1000)
+	needleIndex := ipconv.RoundDecIP(needle.Min, 10)
 
 	if err != nil {
 		return nil, err
@@ -76,7 +119,7 @@ func NewReverseSearch(inputFileName string, query string) (*ReverseSearch, error
 		return nil, errors.New("no results found")
 	}
 
-	reader, file, err := getReader(inputFileName, pos)
+	scanner, file, err := getScanner(inputFileName, pos)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +127,8 @@ func NewReverseSearch(inputFileName string, query string) (*ReverseSearch, error
 	reverseSearch := ReverseSearch{
 		file:       file,
 		needle:     needle,
-		reader:     reader,
+		scanner:    scanner,
+		query: query,
 		foundFirst: false,
 	}
 
@@ -93,15 +137,27 @@ func NewReverseSearch(inputFileName string, query string) (*ReverseSearch, error
 }
 
 func (rs *ReverseSearch) Next() bool {
+	timeout := time.After(100 * time.Millisecond)
 	for {
-		line, err := rs.reader.ReadBytes('\n')
-		if err == io.EOF {
-			rs.err = err
+		select {
+		case <-timeout:
+			fmt.Printf("TIMEOUT ON %s\n", rs.query)
+			rs.err = errors.New("timeout retrieving entry")
+			return false
+		default:
+			break
+		}
+
+		if !rs.scanner.Scan() {
+			rs.err = io.EOF
 			return false
 		}
 
-		lineParts := strings.Split(string(line), ",")
-		candidateIPv4, err := strconv.ParseUint(lineParts[0], 10, 32)
+		delimPos := bytes.IndexByte(rs.scanner.Bytes(), ',')
+		if delimPos == -1 {
+			continue
+		}
+		candidateIPv4, err := strconv.ParseUint(string(rs.scanner.Bytes()[:delimPos]), 10, 32)
 		candidateUInt32 := uint32(candidateIPv4)
 		if err != nil {
 			rs.err = err
@@ -117,15 +173,26 @@ func (rs *ReverseSearch) Next() bool {
 			}
 		}
 		rs.foundFirst = true
-		rs.reverseResult = reconstructReverseResult(candidateUInt32, lineParts[1])
+		rs.reverseResult = reconstructReverseResult(candidateUInt32, string(rs.scanner.Bytes()[delimPos+1:]))
 		return true
 	}
 }
 
-func (rs *ReverseSearch) Collect() map[string][]string {
-	resultsMap := map[string][]string{}
+func (rs *ReverseSearch) Skip(size int) *ReverseSearch {
+	for i := 0; i < size; i++ {
+		if !rs.Next() {
+			break
+		}
+	}
+	return rs
+}
 
-	for rs.Next() {
+func (rs *ReverseSearch) Take(size int) map[string][]string {
+	resultsMap := map[string][]string{}
+	for i := 0; i < size; i++ {
+		if !rs.Next() {
+			break
+		}
 		_, exists := resultsMap[rs.Result().IPv4]
 		if !exists {
 			resultsMap[rs.Result().IPv4] = []string{}

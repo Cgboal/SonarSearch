@@ -4,13 +4,19 @@ import (
 	"context"
 	"github.com/go-redis/redis/v8"
 	"strconv"
-	"fmt"
+	"errors"
 )
+
+var redisClient *redis.Client
+func init() {
+	redisClient = newRedisClient()
+}
 
 func newRedisClient() *redis.Client {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
+		PoolSize: 64,
 		DB:       0,
 	})
 
@@ -18,14 +24,11 @@ func newRedisClient() *redis.Client {
 }
 
 func getPos(key string) (int64, error) {
-	client := newRedisClient()
-	defer client.Close()
 	ctx := context.Background()
-	val, err := client.Get(ctx, key).Result()
+	val, err := redisClient.Get(ctx, key).Result()
 	if err != nil {
-		return 0, err
+		return 0, errors.New("no results found")
 	}
-	fmt.Println(val)
 
 	valInt, _ := strconv.ParseInt(val, 10, 64)
 	return valInt, nil
