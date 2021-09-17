@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/Cgboal/DomainParser v0.0.0-20210827145802-99068439e39f // indirect
 	github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6 // indirect
+	github.com/brotherpowers/ipsubnet v0.0.0-20170914094241-30bc98f0a5b1 // indirect
 	github.com/coreos/etcd v3.3.10+incompatible // indirect
 	github.com/coreos/go-etcd v2.0.0+incompatible // indirect
 	github.com/gin-contrib/timeout v0.0.2 // indirect
