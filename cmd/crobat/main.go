@@ -172,6 +172,11 @@ func (c *CrobatClient) ReverseDNSRange(arg string, resultsChan chan string) {
 			if err == io.EOF {
 				break
 			}
+
+			if err != nil {
+				log.Fatal(err)
+			}
+			
 			if domain == nil {
 				continue
 			}
