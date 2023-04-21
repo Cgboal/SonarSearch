@@ -1,7 +1,4 @@
 ## SonarSearch v2
-<p align="center">
-  <img width="30%" height="30%" src="https://sonar.omnisint.io/img/crobat.png">
-</p>
 
 ### Attention!
 Over a year ago Rapid7 revoked public access to their datasets, and thus the data hosted on the omnisint API became extremely out of date. In addition, due to the licensing changes around the data, our wonderful sponsor ZeroGuard was no longer able to support the project. As a result, it has been taken offline. However, I have released full instruction for running your own instance of the API, providing you can obtain a dataset. The instructions can be found at the bottom of the README.
